@@ -45,9 +45,12 @@ class ThreeScaleClientCRD(threescale_api.client.ThreeScaleClient):
         self._applications = resources.Applications(
             parent=self, account=None, instance_klass=resources.Application
         )
+        self._app_auths = resources.AppAuths(
+            parent=self, instance_klass=resources.AppAuth
+        )
 
     @classmethod
-    def get_namespace(_ignore, namespace):
+    def get_namespace(cls, namespace):
         """
         Returns namespace. If there is no valid Openshift 'oc' session, returns "NOT LOGGED IN".
         """
@@ -125,6 +128,13 @@ class ThreeScaleClientCRD(threescale_api.client.ThreeScaleClient):
         Returns(resources.Applications): Applications client
         """
         return self._applications
+
+    @property
+    def app_auths(self) -> resources.AppAuths:
+        """Gets Application Auth client
+        Returns(resources.Auths): Application Auth client
+        """
+        return self._app_auths
 
     @property
     def ocp_provider_ref(self):

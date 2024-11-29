@@ -1,5 +1,7 @@
 import os
 import secrets
+import random
+import string
 from distutils.util import strtobool
 
 import pytest
@@ -9,7 +11,6 @@ from dotenv import load_dotenv
 
 import threescale_api
 import threescale_api_crd
-from threescale_api.resources import Application
 
 from threescale_api_crd.resources import (
     Service,
@@ -24,6 +25,7 @@ from threescale_api_crd.resources import (
     ApplicationPlan,
     Proxy,
     PricingRule,
+    Application,
 )
 
 load_dotenv()
@@ -206,6 +208,30 @@ def application_params(application_plan, service, account):
 @pytest.fixture(scope="module")
 def application(service, application_plan, application_params, account) -> Application:
     resource = account.applications.create(params=application_params)
+    yield resource
+    cleanup(resource)
+
+
+@pytest.fixture(scope="module")
+def app_key_params(account, application):
+    value = "".join(
+        random.choices(
+            string.ascii_uppercase
+            + string.digits
+            + "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
+            k=100,
+        )
+    )
+    return {
+        "application_id": application["id"],
+        "account_id": account["id"],
+        "key": value,
+    }
+
+
+@pytest.fixture(scope="module")
+def app_key(application, app_key_params) -> threescale_api.resources.ApplicationKey:
+    resource = application.keys.create(params=app_key_params)
     yield resource
     cleanup(resource)
 
