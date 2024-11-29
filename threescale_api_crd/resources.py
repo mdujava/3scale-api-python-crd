@@ -180,7 +180,9 @@ class Proxies(DefaultClientNestedCRD, threescale_api.resources.Proxies):
 
     def delete(self):
         """This functions is not implemented for Proxies."""
-        raise threescale_api.errors.ThreeScaleApiError("Delete not implemented for Proxies")
+        raise threescale_api.errors.ThreeScaleApiError(
+            "Delete not implemented for Proxies"
+        )
 
     def deploy(self):
         """
@@ -368,8 +370,7 @@ class MappingRules(DefaultClientNestedCRD, threescale_api.resources.MappingRules
                 return obj[key][0]
             met = self.parent.metrics.read(int(obj[key]))
             return met["system_name"].split(".")[0]
-        else:
-            return obj[key]
+        return obj[key]
 
     @staticmethod
     def insert_into_position(maps, params, spec):
@@ -395,7 +396,7 @@ class MappingRules(DefaultClientNestedCRD, threescale_api.resources.MappingRules
         if "last" in params.keys():
             return maps[-1]
         for mapi in maps:
-            if all([params[key] == mapi[key] for key in params.keys()]):
+            if all(params[key] == mapi[key] for key in params.keys()):
                 return mapi
         return None
 
@@ -597,7 +598,7 @@ class Metrics(DefaultClientNestedCRD, threescale_api.resources.Metrics):
         self.parent.read()
         self.parent.update({"metrics": maps})
         for mapi in self.get_list():
-            if all([params[key] == mapi[key] for key in params.keys()]):
+            if all(params[key] == mapi[key] for key in params.keys()):
                 return mapi
         return None
 
@@ -716,7 +717,7 @@ class BackendUsages(DefaultClientNestedCRD, threescale_api.resources.BackendUsag
         self.parent.update({"backend_usages": maps})
         params.pop("name", None)
         for mapi in self.get_list():
-            if all([params[key] == mapi[key] for key in params.keys()]):
+            if all(params[key] == mapi[key] for key in params.keys()):
                 return mapi
         return None
 
@@ -926,7 +927,7 @@ class ApplicationPlans(
         self.parent.read()
         self.parent.update({"application_plans": maps})
         for mapi in self.get_list():
-            if all([params[key] == mapi[key] for key in params.keys()]):
+            if all(params[key] == mapi[key] for key in params.keys()):
                 return mapi
         return None
 
@@ -1141,6 +1142,7 @@ class Promotes(DefaultClientCRD, threescale_api.defaults.DefaultClient):
     SELECTOR = "ProxyConfigPromote"
     ID_NAME = "productId"
     # flake8: noqa E501
+    # pylint: disable=line-too-long
     ERROR_MSG = '[]: Invalid value: "": cannot promote to staging as no product changes detected. Delete this proxyConfigPromote CR, then introduce changes to configuration, and then create a new proxyConfigPromote CR'
 
     def __init__(
@@ -1508,15 +1510,13 @@ class Limits(DefaultClientNestedCRD, threescale_api.resources.Limits):
                     if self.metric[BackendMetrics.ID_NAME] == obj["metric_name"]
                     and self.metric.parent["system_name"] == obj["backend_name"]
                 ]
-            else:
-                return [
-                    obj
-                    for obj in instance
-                    if self.metric[Metrics.ID_NAME] == obj["metric_name"]
-                    and "backend_name" not in obj.entity
-                ]
-        else:
-            return [obj for obj in instance]
+            return [
+                obj
+                for obj in instance
+                if self.metric[Metrics.ID_NAME] == obj["metric_name"]
+                and "backend_name" not in obj.entity
+            ]
+        return [obj for obj in instance]
 
 
 class PricingRules(DefaultClientNestedCRD, threescale_api.resources.PricingRules):
@@ -1707,15 +1707,13 @@ class PricingRules(DefaultClientNestedCRD, threescale_api.resources.PricingRules
                     if self.metric[Metrics.ID_NAME] == obj["metric_name"]
                     and self.metric.parent["system_name"] == obj["backend_name"]
                 ]
-            else:
-                return [
-                    obj
-                    for obj in instance
-                    if self.metric[Metrics.ID_NAME] == obj["metric_name"]
-                    and "backend_name" not in obj.entity
-                ]
-        else:
-            return [obj for obj in instance]
+            return [
+                obj
+                for obj in instance
+                if self.metric[Metrics.ID_NAME] == obj["metric_name"]
+                and "backend_name" not in obj.entity
+            ]
+        return [obj for obj in instance]
 
 
 class Applications(DefaultClientCRD, threescale_api.resources.Applications):
@@ -1915,7 +1913,7 @@ class Methods(DefaultClientNestedCRD, threescale_api.resources.Methods):
         self.topmost_parent().read()
         self.topmost_parent().update({"methods": maps})
         for mapi in self.get_list():
-            if all([params[key] == mapi[key] for key in params.keys()]):
+            if all(params[key] == mapi[key] for key in params.keys()):
                 return mapi
         return None
 
@@ -2129,8 +2127,7 @@ class Proxy(DefaultResourceCRD, threescale_api.resources.Proxy):
         prom.delete()
         if ide and int(ide) == self.parent["id"]:
             return True
-        else:
-            return False
+        return False
 
     def promote(self, **kwargs):
         """
@@ -2150,8 +2147,7 @@ class Proxy(DefaultResourceCRD, threescale_api.resources.Proxy):
         prom.delete()
         if ide and int(ide) == self.parent["id"]:
             return True
-        else:
-            return False
+        return False
 
     @property
     def service(self) -> "Service":
@@ -2288,7 +2284,7 @@ class OpenApiRef:
         if "url" in spec:
             url = spec["url"]
             entity["url"] = url
-            res = requests.get(url)
+            res = requests.get(urli, timeout=60)
             if url.endswith(".yaml") or url.endswith(".yml"):
                 entity["body"] = json.dumps(
                     yaml.load(res.content, Loader=yaml.SafeLoader)
@@ -3156,8 +3152,7 @@ class Application(DefaultResourceCRD, threescale_api.resources.Application):
     def account(self) -> "Account":
         if self.client.account:
             return self.client.account
-        else:
-            return self.parent.accounts.read_by_name(self.entity["account_name"])
+        return self.parent.accounts.read_by_name(self.entity["account_name"])
 
     def set_state(self, state: str):
         """Sets the state for the resource
@@ -3217,10 +3212,10 @@ class Method(DefaultResourceCRD, threescale_api.resources.Method):
 
             self.entity_id = entity["id"]
             super().__init__(crd=crd, entity=entity, entity_name=entity_name, **kwargs)
-        else:
-            # this is not here because of some backup, but because we need to have option
-            # to creater empty object without any data. This is related to "lazy load"
-            super().__init__(entity_name=entity_name, **kwargs)
+
+        # this is not here because of some backup, but because we need to have option
+        # to creater empty object without any data. This is related to "lazy load"
+        super().__init__(entity_name=entity_name, **kwargs)
 
     @property
     def metric(self) -> "Metric":

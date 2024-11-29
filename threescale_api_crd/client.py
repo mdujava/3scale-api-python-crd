@@ -13,7 +13,9 @@ class ThreeScaleClientCRD(threescale_api.client.ThreeScaleClient):
     Threescale client for CRD.
     """
 
-    def __init__(self, url, token, ocp_provider_ref=None, ocp_namespace=None, *args, **kwargs):
+    def __init__(
+        self, url, token, ocp_provider_ref=None, ocp_namespace=None, *args, **kwargs
+    ):
         super().__init__(url, token, *args, **kwargs)
         self._ocp_provider_ref = ocp_provider_ref
         self._ocp_namespace = ThreeScaleClientCRD.get_namespace(ocp_namespace)
