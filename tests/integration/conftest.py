@@ -2,7 +2,6 @@ import os
 import secrets
 import random
 import string
-from distutils.util import strtobool
 
 import pytest
 from dotenv import load_dotenv
@@ -30,13 +29,13 @@ from threescale_api_crd.resources import (
 
 load_dotenv()
 
+def strtobool(istr):
+    return istr == "y" or istr == "yes" or istr == "t" or istr == "true" or istr == "1"
+
 
 def cleanup(resource):
     resource.delete()
     assert not resource.exists()
-
-
-#    pass
 
 
 def get_suffix() -> str:
@@ -66,7 +65,7 @@ def master_token() -> str:
 @pytest.fixture(scope="session")
 def ssl_verify() -> bool:
     ssl_verify = os.getenv("THREESCALE_SSL_VERIFY", "false")
-    ssl_verify = bool(strtobool(ssl_verify))
+    ssl_verify = strtobool(ssl_verify)
     if not ssl_verify:
         import urllib3
 

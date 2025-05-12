@@ -21,23 +21,23 @@ def ocp_provider_ref() -> str:
 
 
 def _create_client(
-    url, token, ocp_provider_ref, **kwargs
+    url, token, ocp_provider_ref, ocp_namespace, **kwargs
 ) -> client.ThreeScaleClientCRD:
     return client.ThreeScaleClientCRD(
-        url=url, token=token, ocp_provider_ref=ocp_provider_ref, **kwargs
+        url=url, token=token, ocp_provider_ref=ocp_provider_ref, ocp_namespace=ocp_namespace, **kwargs
     )
 
 
 @pytest.fixture()
-def api(url, token, ocp_provider_ref):
-    return _create_client(url, token, ocp_provider_ref)
+def api(url, token, ocp_provider_ref, namespace):
+    return _create_client(url, token, ocp_provider_ref, ocp_namespace=namespace)
 
 
 @pytest.fixture()
 def namespace():
     try:
         return ocp.get_project_name()
-    except OpenShiftPythonException:
+    except (FileNotFoundError, OpenShiftPythonException):
         return "NOT LOGGED IN"
 
 
