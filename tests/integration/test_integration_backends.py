@@ -52,3 +52,8 @@ def test_backend_metrics_list(backend, backend_metric):
 
 def test_backend_mapping_rules_list(backend, backend_mapping_rule):
     assert backend.mapping_rules.list()
+
+
+def test_backend_annotation(backend, api_origin):
+    backend_origin = api_origin.backends.fetch(backend.entity_id)
+    assert backend_origin['annotations']['managed_by'] == 'operator'

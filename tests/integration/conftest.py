@@ -94,8 +94,7 @@ def api(
 
 @pytest.fixture(scope="session")
 def api_origin(
-    url: str, token: str, ssl_verify: bool, ocp_provider_ref: str
-) -> threescale_api.ThreeScaleClient:
+    url: str, token: str, ssl_verify: bool) -> threescale_api.ThreeScaleClient:
     return threescale_api.ThreeScaleClient(url=url, token=token, ssl_verify=ssl_verify)
 
 
@@ -108,6 +107,16 @@ def master_api(
         token=master_token,
         ssl_verify=ssl_verify,
         ocp_provider_ref=ocp_provider_ref,
+    )
+
+
+@pytest.fixture(scope="session")
+def master_api_origin(
+    master_url: str, master_token: str, ssl_verify: bool) -> threescale_api.ThreeScaleClient:
+    return threescale_api.ThreeScaleClient(
+        url=master_url,
+        token=master_token,
+        ssl_verify=ssl_verify,
     )
 
 
