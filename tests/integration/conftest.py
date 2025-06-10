@@ -1,6 +1,7 @@
 import os
 import secrets
-from distutils.util import strtobool
+import random
+import string
 
 import pytest
 from dotenv import load_dotenv
@@ -9,7 +10,6 @@ from dotenv import load_dotenv
 
 import threescale_api
 import threescale_api_crd
-from threescale_api.resources import Application
 
 from threescale_api_crd.resources import (
     Service,
@@ -24,17 +24,18 @@ from threescale_api_crd.resources import (
     ApplicationPlan,
     Proxy,
     PricingRule,
+    Application,
 )
 
 load_dotenv()
+
+def strtobool(istr):
+    return istr == "y" or istr == "yes" or istr == "t" or istr == "true" or istr == "1"
 
 
 def cleanup(resource):
     resource.delete()
     assert not resource.exists()
-
-
-#    pass
 
 
 def get_suffix() -> str:
@@ -64,7 +65,7 @@ def master_token() -> str:
 @pytest.fixture(scope="session")
 def ssl_verify() -> bool:
     ssl_verify = os.getenv("THREESCALE_SSL_VERIFY", "false")
-    ssl_verify = bool(strtobool(ssl_verify))
+    ssl_verify = strtobool(ssl_verify)
     if not ssl_verify:
         import urllib3
 
@@ -119,7 +120,7 @@ def apicast_http_client(application, proxy, ssl_verify):
 @pytest.fixture(scope="module")
 def service_params():
     suffix = get_suffix()
-    return dict(name=f"test-{suffix}")
+    return {"name": f"test-{suffix}"}
 
 
 @pytest.fixture(scope="module")
@@ -133,14 +134,14 @@ def service(service_params, api) -> Service:
 def account_params():
     suffix = get_suffix()
     name = f"testacc{suffix}"
-    return dict(
-        name=name,
-        username=name,
-        org_name=name,
-        monthly_billing_enabled=False,
-        monthly_charging_enabled=False,
-        email=f"{name}@name.none",
-    )
+    return {
+        "name": name,
+        "username": name,
+        "org_name": name,
+        "monthly_billing_enabled": False,
+        "monthly_charging_enabled": False,
+        "email": f"{name}@name.none",
+    }
 
 
 @pytest.fixture(scope="module")
@@ -159,12 +160,12 @@ def acc_user(account):
 @pytest.fixture(scope="module")
 def acc_user2_params(account, acc_user):
     name = acc_user["username"] + "2"
-    return dict(
-        username=name,
-        email=f"{name}@name.none",
-        role="member",
-        account_name=account["name"],
-    )
+    return {
+        "username": name,
+        "email": f"{name}@name.none",
+        "role": "member",
+        "account_name": account["name"],
+    }
 
 
 @pytest.fixture(scope="module")
@@ -175,12 +176,12 @@ def acc_user2(account, acc_user, acc_user2_params):
 @pytest.fixture(scope="module")
 def application_plan_params(service) -> dict:
     suffix = get_suffix()
-    return dict(
-        name=f"test-{suffix}",
-        setup_fee="1.00",
-        state_event="publish",
-        cost_per_month="3.00",
-    )
+    return {
+        "name": f"test-{suffix}",
+        "setup_fee": "1.00",
+        "state_event": "publish",
+        "cost_per_month": "3.00",
+    }
 
 
 @pytest.fixture(scope="module")
@@ -194,18 +195,42 @@ def application_plan(api, service, application_plan_params) -> ApplicationPlan:
 def application_params(application_plan, service, account):
     suffix = get_suffix()
     name = f"test-{suffix}"
-    return dict(
-        name=name,
-        description=name,
-        plan_id=application_plan["id"],
-        service_id=service["id"],
-        account_id=account["id"],
-    )
+    return {
+        "name": name,
+        "description": name,
+        "plan_id": application_plan["id"],
+        "service_id": service["id"],
+        "account_id": account["id"],
+    }
 
 
 @pytest.fixture(scope="module")
 def application(service, application_plan, application_params, account) -> Application:
     resource = account.applications.create(params=application_params)
+    yield resource
+    cleanup(resource)
+
+
+@pytest.fixture(scope="module")
+def app_key_params(account, application):
+    value = "".join(
+        random.choices(
+            string.ascii_uppercase
+            + string.digits
+            + "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
+            k=100,
+        )
+    )
+    return {
+        "application_id": application["id"],
+        "account_id": account["id"],
+        "key": value,
+    }
+
+
+@pytest.fixture(scope="module")
+def app_key(application, app_key_params) -> threescale_api.resources.ApplicationKey:
+    resource = application.keys.create(params=app_key_params)
     yield resource
     cleanup(resource)
 
@@ -244,7 +269,7 @@ def metric_params(service):
     suffix = get_suffix()
     friendly_name = f"test-metric-{suffix}"
     name = f"{friendly_name}".replace("-", "_")
-    return dict(friendly_name=friendly_name, system_name=name, unit="count")
+    return {"friendly_name": friendly_name, "system_name": name, "unit": "count"}
 
 
 @pytest.fixture(scope="module")
@@ -252,7 +277,7 @@ def backend_metric_params():
     suffix = get_suffix()
     friendly_name = f"test-metric-{suffix}"
     name = f"{friendly_name}".replace("-", "")
-    return dict(friendly_name=friendly_name, system_name=name, unit="count")
+    return {"friendly_name": friendly_name, "system_name": name, "unit": "count"}
 
 
 @pytest.fixture(scope="module")
@@ -284,7 +309,7 @@ def method_params():
     suffix = get_suffix()
     friendly_name = f"test-method-{suffix}"
     system_name = f"{friendly_name}".replace("-", "_")
-    return dict(friendly_name=friendly_name, system_name=system_name)
+    return {"friendly_name": friendly_name, "system_name": system_name}
 
 
 # 'friendly_name' is id in CRD for methods
@@ -321,7 +346,12 @@ def mapping_rule_params(service):
     Fixture for getting paramteres for mapping rule for product/service.
     """
     hits_metric = service.metrics.read_by_name("hits")
-    return dict(http_method="GET", pattern="/get", metric_id=hits_metric["id"], delta=1)
+    return {
+        "http_method": "GET",
+        "pattern": "/get",
+        "metric_id": hits_metric["id"],
+        "delta": 1,
+    }
 
 
 @pytest.fixture(scope="module")
@@ -330,7 +360,12 @@ def backend_mapping_rule_params(backend, backend_metric):
     Fixture for getting paramteres for mapping rule for backend.
     """
     back = backend_metric["id"]
-    return dict(http_method="GET", pattern="/anything/get/ida", metric_id=back, delta=1)
+    return {
+        "http_method": "GET",
+        "pattern": "/anything/get/ida",
+        "metric_id": back,
+        "delta": 1,
+    }
 
 
 @pytest.fixture(scope="module")
@@ -388,13 +423,13 @@ def create_mapping_rule(service):
     rules = []
 
     def _create(metric, http_method, path):
-        params = dict(
-            service_id=service["id"],
-            http_method=http_method,
-            pattern=f"/anything{path}",
-            delta=1,
-            metric_id=metric["id"],
-        )
+        params = {
+            "service_id": service["id"],
+            "http_method": http_method,
+            "pattern": f"/anything{path}",
+            "delta": 1,
+            "metric_id": metric["id"],
+        }
         rule = service.mapping_rules.create(params=params)
         rules.append(rule)
         return rule
@@ -415,13 +450,13 @@ def create_backend_mapping_rule(backend):
     rules = []
 
     def _create(backend_metric, http_method, path):
-        params = dict(
-            backend_id=backend["id"],
-            http_method=http_method,
-            pattern=f"/anything{path}",
-            delta=1,
-            metric_id=backend_metric["id"],
-        )
+        params = {
+            "backend_id": backend["id"],
+            "http_method": http_method,
+            "pattern": f"/anything{path}",
+            "delta": 1,
+            "metric_id": backend_metric["id"],
+        }
         rule = backend.mapping_rules.create(params=params)
         rules.append(rule)
         return rule
@@ -439,9 +474,11 @@ def backend_params(api_backend):
     Fixture for getting backend parameters.
     """
     suffix = get_suffix()
-    return dict(
-        name=f"test-backend-{suffix}", private_endpoint=api_backend, description="111"
-    )
+    return {
+        "name": f"test-backend-{suffix}",
+        "private_endpoint": api_backend,
+        "description": "111",
+    }
 
 
 @pytest.fixture(scope="module")
@@ -479,12 +516,12 @@ def tenant_params():
     """
     Params for custom tenant
     """
-    return dict(
-        username=f"tenant{get_suffix()}",
-        admin_password="123456",
-        email=f"e{get_suffix()}@invalid.invalid",
-        org_name="org",
-    )
+    return {
+        "username": f"tenant{get_suffix()}",
+        "admin_password": "123456",
+        "email": f"e{get_suffix()}@invalid.invalid",
+        "org_name": "org",
+    }
 
 
 @pytest.fixture(scope="module")
@@ -499,7 +536,7 @@ def active_docs_params(active_docs_body):
     suffix = get_suffix()
     name = f"test-{suffix}"
     des = f"description-{suffix}"
-    return dict(name=name, body=active_docs_body, description=des)
+    return {"name": name, "body": active_docs_body, "description": des}
 
 
 @pytest.fixture(scope="module")
@@ -518,17 +555,17 @@ def active_doc(api, service, active_docs_params) -> ActiveDoc:
 def openapi_params(active_docs_body):
     suffix = get_suffix()
     name = f"test-{suffix}"
-    params = dict(
-        name=name,
-        productionPublicBaseURL="http://productionPublicBaseURL",
-        stagingPublicBaseURL="http://stagingPublicBaseURL",
-        productSystemName="PrOdUcTsYsTeMnAmE",
-        privateBaseURL="http://privateBaseURL",
-        prefixMatching=True,
-        privateAPIHostHeader="privateAPIHostHeader",
-        privateAPISecretToken="privateAPISecretToken",
-        body=active_docs_body,
-    )
+    params = {
+        "name": name,
+        "productionPublicBaseURL": "http://productionPublicBaseURL",
+        "stagingPublicBaseURL": "http://stagingPublicBaseURL",
+        "productSystemName": "PrOdUcTsYsTeMnAmE",
+        "privateBaseURL": "http://privateBaseURL",
+        "prefixMatching": True,
+        "privateAPIHostHeader": "privateAPIHostHeader",
+        "privateAPISecretToken": "privateAPISecretToken",
+        "body": active_docs_body,
+    }
     return params
 
 
@@ -584,7 +621,7 @@ def policy_registry_params(policy_registry_schema):
     """Params for policy registry."""
     suffix = get_suffix()
     name = f"test-{suffix}"
-    return dict(name=name, version="0.1", schema=policy_registry_schema)
+    return {"name": name, "version": "0.1", "schema": policy_registry_schema}
 
 
 @pytest.fixture(scope="module")
@@ -601,7 +638,7 @@ def policy_registry(api, policy_registry_params) -> PolicyRegistry:
 @pytest.fixture(scope="module")
 def limit_params(metric):
     """Params for limit."""
-    return dict(metric_id=metric["id"], period="minute", value=10)
+    return {"metric_id": metric["id"], "period": "minute", "value": 10}
 
 
 @pytest.fixture(scope="module")
@@ -617,7 +654,7 @@ def limit(service, application, application_plan, metric, limit_params) -> Limit
 @pytest.fixture(scope="module")
 def backend_limit_params(backend_metric):
     """Params for limit."""
-    return dict(metric_id=backend_metric["id"], period="minute", value=10)
+    return {"metric_id": backend_metric["id"], "period": "minute", "value": 10}
 
 
 @pytest.fixture(scope="module")
@@ -640,7 +677,7 @@ def backend_limit(
 @pytest.fixture(scope="module")
 def prule_params(metric):
     """Params for prule."""
-    return dict(metric_id=metric["id"], min=10, max=100, cost_per_unit="10")
+    return {"metric_id": metric["id"], "min": 10, "max": 100, "cost_per_unit": "10"}
 
 
 @pytest.fixture(scope="module")
@@ -656,7 +693,12 @@ def prule(service, application, application_plan, metric, prule_params) -> Prici
 @pytest.fixture(scope="module")
 def backend_prule_params(backend_metric):
     """Params for prule."""
-    return dict(metric_id=backend_metric["id"], min=10, max=100, cost_per_unit=10)
+    return {
+        "metric_id": backend_metric["id"],
+        "min": 10,
+        "max": 100,
+        "cost_per_unit": 10,
+    }
 
 
 @pytest.fixture(scope="module")
@@ -683,7 +725,7 @@ def promote_params(api, service):
     """
     Promote params for service.
     """
-    return dict(productCRName=service.crd.as_dict()["metadata"]["name"])
+    return {"productCRName": service.crd.as_dict()["metadata"]["name"]}
 
 
 @pytest.fixture(scope="module")
