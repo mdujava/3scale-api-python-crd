@@ -47,3 +47,8 @@ def test_tenant_can_be_updated(api, custom_tenant):
 
 
 # end of tests important for CRD - CRU + list
+
+
+def test_tenant_annotation(custom_tenant, master_api_origin):
+    tenant_origin = master_api_origin.tenants.read(custom_tenant.entity_id)
+    assert tenant_origin["signup"]["account"]["annotations"]["managed_by"] == "operator"

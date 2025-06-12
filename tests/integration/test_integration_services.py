@@ -145,3 +145,8 @@ def test_service_active_docs(service, active_doc):
     assert all(
         [acs["service_id"] == service["id"] for acs in service.active_docs.list()]
     )
+
+
+def test_service_annotation(service, api_origin):
+    service_origin = api_origin.services.fetch(service.entity_id)
+    assert service_origin['annotations']['managed_by'] == 'operator'

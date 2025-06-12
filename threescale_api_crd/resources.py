@@ -3212,10 +3212,10 @@ class Method(DefaultResourceCRD, threescale_api.resources.Method):
 
             self.entity_id = entity["id"]
             super().__init__(crd=crd, entity=entity, entity_name=entity_name, **kwargs)
-
-        # this is not here because of some backup, but because we need to have option
-        # to creater empty object without any data. This is related to "lazy load"
-        super().__init__(entity_name=entity_name, **kwargs)
+        else:
+            # this is not here because of some backup, but because we need to have option
+            # to creater empty object without any data. This is related to "lazy load"
+            super().__init__(entity_name=entity_name, **kwargs)
 
     @property
     def metric(self) -> "Metric":

@@ -33,3 +33,12 @@ def test_openapi_can_be_updated(api, openapi):
 
 
 # end of tests important for CRD - CRU + list
+
+
+def test_openapi_annotation(openapi, api_origin):
+    service_origin = api_origin.services.fetch(openapi.service.entity_id)
+    assert service_origin['annotations']['managed_by'] == 'operator'
+
+    for backend in openapi.backends:
+        backend_origin = api_origin.backends.fetch(backend.entity_id)
+        assert backend_origin['annotations']['managed_by'] == 'operator'
