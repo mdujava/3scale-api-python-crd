@@ -2,6 +2,8 @@
 
 3scale client uses CRs for object definition. CRs are processed by 3scale Operator.
 
+[![lint & smoke](https://github.com/3scale-qe/3scale-api-python-crd/actions/workflows/lint-and-smoke.yml/badge.svg)](https://github.com/3scale-qe/3scale-api-python-crd/actions)
+
 [Capabilities documentation](https://github.com/3scale/3scale-operator/blob/master/doc/operator-application-capabilities.md)
 
 ## Installing
