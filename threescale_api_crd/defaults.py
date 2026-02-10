@@ -1,5 +1,6 @@
 """ Module with default objects """
 
+import backoff
 import logging
 import copy
 import random
@@ -259,21 +260,24 @@ class DefaultClientCRD(threescale_api.defaults.DefaultClient):
         return spec
 
     def _is_ready(self, obj):
-        """Is object ready?"""
+        """Is object ready?
+
+        Ready states:
+        - Synced=True or Ready=True (with valid ID)
+        - Orphan=True (waiting for parent resource) with no Failed/Invalid
+        """
         if not ("status" in obj.model and "conditions" in obj.model.status):
             return False
         status = obj.as_dict()["status"]
         new_id = status.get(self.ID_NAME, 0)
-        state = {"Failed": True, "Invalid": True, "Synced": False, "Ready": False}
+        state = {"Failed": True, "Invalid": True, "Synced": False, "Ready": False, "Orphan": False}
         for sta in status["conditions"]:
             state[sta["type"]] = sta["status"] == "True"
 
-        return (
-            not state["Failed"]
-            and not state["Invalid"]
-            and (state["Synced"] or state["Ready"])
-            and (new_id != 0)
-        )
+        if state["Failed"] or state["Invalid"]:
+            return False
+        # Orphan is valid (waiting for parent), or Synced/Ready with valid ID
+        return state["Orphan"] or ((state["Synced"] or state["Ready"]) and (new_id != 0))
 
     def _create_instance(self, response, klass=None, collection: bool = False):
         klass = klass or self._instance_klass
@@ -587,17 +591,14 @@ class DefaultResourceCRD(threescale_api.defaults.DefaultResource):
 
     def get_id_from_crd(self):
         """Returns object id extracted from CRD."""
-        counter = 5
-        while counter > 0:
+        # 12 tries with fibonacci backoff: 1+1+2+3+5+8+13+21+34+55+89+144 ≈ 376 seconds (~6 min)
+        @backoff.on_predicate(backoff.fibo, lambda x: x is None, max_tries=12, jitter=None)
+        def _get_id():
             self.crd = self.crd.refresh()
             status = self.crd.as_dict()["status"]
-            ret_id = status.get(self.client.ID_NAME, None)
-            if ret_id:
-                return ret_id
-            time.sleep(20)
-            counter -= 1
+            return status.get(self.client.ID_NAME, None)
 
-        return None
+        return _get_id()
 
     def get_path(self):
         """
