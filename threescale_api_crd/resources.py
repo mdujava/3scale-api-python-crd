@@ -1053,14 +1053,22 @@ class Accounts(DefaultClientCRD, threescale_api.resources.Accounts):
         )
 
     def before_create(self, params, spec):
-        """Called before create."""
+        """Called before create.
+
+        Returns:
+            List of (resource, id_name) tuples for dependent resources that
+            need to be waited on after the main object is created.
+        """
         if "username" in params:
             pars = params.copy()
             pars["account_name"] = pars["name"]
             pars["name"] = secrets.token_urlsafe(8)
             # first user should be admin
             pars["role"] = "admin"
-            self.parent.threescale_client.account_users.create(params=pars)
+            user = self.parent.threescale_client.account_users.create(params=pars)
+            # Return the user so that create() waits for it to have its ID
+            return [(user, AccountUsers.ID_NAME)]
+        return []
 
     def before_update(self, new_params, resource):
         """Called before update."""
