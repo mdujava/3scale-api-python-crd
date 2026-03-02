@@ -2284,7 +2284,7 @@ class OpenApiRef:
         if "url" in spec:
             url = spec["url"]
             entity["url"] = url
-            res = requests.get(urli, timeout=60)
+            res = requests.get(url, timeout=60)
             if url.endswith(".yaml") or url.endswith(".yml"):
                 entity["body"] = json.dumps(
                     yaml.load(res.content, Loader=yaml.SafeLoader)
